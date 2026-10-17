@@ -56,21 +56,23 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     width: 100%;
   }
   .num {
-    font-size: clamp(3.75rem, 17vw, 5.25rem);
+    font-size: clamp(4.75rem, 22vw, 6.75rem);
     font-weight: 700;
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
     text-align: center;
     width: 100%;
+    color: #00ff00;
   }
   .rounds { list-style: none; width: 100%; }
   .rounds li {
-    font-size: clamp(3.75rem, 17vw, 5.25rem);
+    font-size: clamp(4.75rem, 22vw, 6.75rem);
     font-weight: 700;
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
     text-align: center;
     padding: 0.15rem 0;
+    color: #ffffff;
   }
   .reset-wrap { margin-top: auto; padding-top: 2rem; width: 100%; }
   button.reset {
