@@ -1,5 +1,20 @@
 # UV dosimeter (ESP32)
 
+## Clone
+
+Primary repository (GitHub):
+
+```bash
+git clone https://github.com/tom-tayon/UV.git
+cd UV
+```
+
+Works on Windows (Git Bash or Git for Windows), macOS, and Linux.
+
+This project may also live in a [Cursor codebase](https://cursor.com/docs) on Origin; day-to-day pushes can use either remote if both are configured (`origin` for Origin, `github` for GitHub).
+
+---
+
 Port of the Uno UV dosimeter. Once a second it reads the sensor, adds `reading / 75` to a running total, and chirps the buzzer when the total crosses the dose selected at boot. After four chirps it stops sampling. Wi-Fi, a mobile-friendly web page, and ArduinoOTA keep running either way.
 
 ## Web UI (phone)
