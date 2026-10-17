@@ -5,7 +5,7 @@
 Primary repository (GitHub):
 
 ```bash
-git clone https://github.com/tom-tayon/UV.git
+git clone https://github.com/Wyzird42/UV.git
 cd UV
 ```
 
