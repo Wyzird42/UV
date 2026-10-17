@@ -44,44 +44,40 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
   body {
     display: flex;
     flex-direction: column;
-    padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem max(1.5rem, env(safe-area-inset-bottom));
+    padding: max(1.5rem, env(safe-area-inset-top)) 1rem max(1.5rem, env(safe-area-inset-bottom));
     max-width: 28rem;
     margin: 0 auto;
   }
-  .label {
-    font-size: 0.85rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #888;
-    margin-bottom: 0.35rem;
+  .stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    flex: 1;
+    width: 100%;
   }
-  .block { margin-bottom: 1.75rem; }
-  .uv-value {
-    font-size: clamp(3.5rem, 18vw, 5rem);
+  .num {
+    font-size: clamp(3.75rem, 17vw, 5.25rem);
     font-weight: 700;
-    line-height: 1;
+    line-height: 1.05;
     font-variant-numeric: tabular-nums;
+    text-align: center;
+    width: 100%;
   }
-  .uv-unit { font-size: 1.25rem; color: #aaa; margin-left: 0.25rem; }
-  .adc { font-size: 0.95rem; color: #666; margin-top: 0.5rem; }
-  .big {
-    font-size: clamp(2rem, 10vw, 2.75rem);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-  .rounds { list-style: none; margin-top: 0.75rem; }
+  .rounds { list-style: none; width: 100%; }
   .rounds li {
-    font-size: 1.35rem;
-    padding: 0.35rem 0;
-    border-bottom: 1px solid #222;
+    font-size: clamp(3.75rem, 17vw, 5.25rem);
+    font-weight: 700;
+    line-height: 1.05;
     font-variant-numeric: tabular-nums;
+    text-align: center;
+    padding: 0.15rem 0;
   }
-  .status-line { font-size: 0.9rem; color: #777; margin-top: 0.5rem; }
-  .reset-wrap { margin-top: auto; padding-top: 2rem; }
+  .reset-wrap { margin-top: auto; padding-top: 2rem; width: 100%; }
   button.reset {
     width: 100%;
     padding: 1.1rem 1.25rem;
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 600;
     border: 2px solid #444;
     border-radius: 12px;
@@ -96,22 +92,13 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 </style>
 </head>
 <body>
-  <section class="block">
-    <div class="label">Current UV</div>
-    <div><span class="uv-value" id="uv">—</span><span class="uv-unit">/s</span></div>
-    <div class="adc" id="adc"></div>
-  </section>
-  <section class="block">
-    <div class="label">Est. time remaining</div>
-    <div class="big" id="eta">—</div>
-    <div class="status-line" id="dose"></div>
-  </section>
-  <section class="block">
-    <div class="label">Elapsed</div>
-    <div class="big" id="session-elapsed">—</div>
-    <div class="status-line">This round: <span id="round-elapsed">—</span></div>
+  <div class="stack">
+    <div class="num" id="uv">—</div>
+    <div class="num" id="eta">—</div>
+    <div class="num" id="session-elapsed">—</div>
+    <div class="num" id="round-elapsed">—</div>
     <ul class="rounds" id="rounds"></ul>
-  </section>
+  </div>
   <div class="reset-wrap">
     <button type="button" class="reset" id="reset-btn">Reset</button>
     <div class="err" id="err" hidden></div>
@@ -137,17 +124,14 @@ async function poll() {
     if (!r.ok) throw new Error('status ' + r.status);
     var d = await r.json();
     document.getElementById('uv').textContent = d.uv.toFixed(2);
-    document.getElementById('adc').textContent = 'ADC ' + d.adc;
-    document.getElementById('eta').textContent = d.run ? fmtEta(d.eta_sec) : 'Done';
-    document.getElementById('dose').textContent =
-      'Round ' + Math.min(d.count + 1, 4) + '/4 · ' + Math.round(d.total) + ' / ' + d.threshold;
+    document.getElementById('eta').textContent = d.run ? fmtEta(d.eta_sec) : '—';
     document.getElementById('session-elapsed').textContent = fmt(d.session_elapsed_ms);
     document.getElementById('round-elapsed').textContent = fmt(d.round_elapsed_ms);
     var ul = document.getElementById('rounds');
     ul.innerHTML = '';
-    (d.rounds || []).forEach(function(ms, i) {
+    (d.rounds || []).forEach(function(ms) {
       var li = document.createElement('li');
-      li.textContent = 'Round ' + (i + 1) + ': ' + fmt(ms);
+      li.textContent = fmt(ms);
       ul.appendChild(li);
     });
     document.getElementById('err').hidden = true;
