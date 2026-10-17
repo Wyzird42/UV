@@ -3,6 +3,7 @@
 #include <WiFi.h>
 
 #include "secrets.h"
+#include "web_server.h"
 
 // Dose thresholds, in the same units as the Uno sketch (sum of reading/75).
 static const int UV6 = 6000;
@@ -40,6 +41,14 @@ float total = 0;
 bool run = true;
 int count = 0;
 
+float lastSensorAdc = 0;
+float lastUv = 0;
+float smoothedUvRate = 0;
+unsigned long sessionStartMs = 0;
+unsigned long roundStartMs = 0;
+int completedRounds = 0;
+unsigned long roundTimesMs[4] = {0, 0, 0, 0};
+
 bool otaReady = false;
 bool wifiAnnounced = false;
 unsigned long lastWifiRetryMs = 0;
@@ -50,6 +59,42 @@ unsigned long chirpStepMs = 0;
 
 unsigned long lastSampleMs = 0;
 bool sampledOnce = false;
+
+void selectDose();
+
+void hardwareReset() {
+    noTone(PIN_BUZZER);
+    chirpActive = false;
+    chirpStep = 0;
+
+    selectDose();
+    total = 0;
+    count = 0;
+    run = true;
+    completedRounds = 0;
+    for (int i = 0; i < 4; i++) {
+        roundTimesMs[i] = 0;
+    }
+    sampledOnce = false;
+    lastSampleMs = 0;
+    lastSensorAdc = 0;
+    lastUv = 0;
+    smoothedUvRate = 0;
+
+    unsigned long now = millis();
+    sessionStartMs = now;
+    roundStartMs = now;
+
+    tone(PIN_BUZZER, 1300, SOUND_MS);
+}
+
+void onChirpFinished() {
+    if (completedRounds < 4 && count > 0) {
+        roundTimesMs[completedRounds] = millis() - roundStartMs;
+        completedRounds++;
+    }
+    roundStartMs = millis();
+}
 
 void startChirp() {
     chirpActive = true;
@@ -70,11 +115,13 @@ void serviceChirp() {
     }
 
     chirpStep++;
-    tone(PIN_BUZZER, CHIRP_HZ[chirpStep], SOUND_MS);
     if (chirpStep >= CHIRP_TONES - 1) {
+        tone(PIN_BUZZER, CHIRP_HZ[chirpStep], SOUND_MS);
         chirpActive = false;
+        onChirpFinished();
         return;
     }
+    tone(PIN_BUZZER, CHIRP_HZ[chirpStep], SOUND_MS);
     chirpStepMs = millis();
 }
 
@@ -89,6 +136,7 @@ void startOta() {
     });
     ArduinoOTA.begin();
     otaReady = true;
+    beginWebServer(hardwareReset);
 }
 
 void announceWifi() {
@@ -170,6 +218,14 @@ void sampleUv() {
     // sensor is a float, so this is floating division, as on the Uno.
     float sensor = analogRead(PIN_UV_SENSOR);
     float uv = sensor / 75;
+    lastSensorAdc = sensor;
+    lastUv = uv;
+    if (smoothedUvRate < 0.01f) {
+        smoothedUvRate = uv;
+    } else {
+        smoothedUvRate = smoothedUvRate * 0.65f + uv * 0.35f;
+    }
+
     total += uv;
 
     if (total >= uvSelection) {
@@ -185,6 +241,10 @@ void setup() {
     Serial.begin(115200);
 
     selectDose();
+
+    unsigned long now = millis();
+    sessionStartMs = now;
+    roundStartMs = now;
 
     // The Uno sketch divides a 10-bit analogRead (0–1023) by 75.
     // ESP32 defaults to 12-bit (0–4095). Without this, the same voltage

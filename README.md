@@ -1,6 +1,20 @@
 # UV dosimeter (ESP32)
 
-Port of the Uno UV dosimeter. Once a second it reads the sensor, adds `reading / 75` to a running total, and chirps the buzzer when the total crosses the dose selected at boot. After four chirps it stops sampling. Wi-Fi and ArduinoOTA keep running either way.
+Port of the Uno UV dosimeter. Once a second it reads the sensor, adds `reading / 75` to a running total, and chirps the buzzer when the total crosses the dose selected at boot. After four chirps it stops sampling. Wi-Fi, a mobile-friendly web page, and ArduinoOTA keep running either way.
+
+## Web UI (phone)
+
+When the board is on Wi-Fi, open **`http://uv-dosimeter.local/`** in a phone browser (portrait layout: black background, large numbers). If mDNS does not resolve on your network, use the IP printed on the serial monitor at `115200` baud, for example `http://192.168.1.20/`.
+
+The page polls **`GET /api/status`** once per second (JSON). **`POST /api/reset`** performs the same reset as power-cycling with respect to dose state: selector pins are read again, totals and round history clear, sampling restarts, and the startup beep plays.
+
+Displayed values:
+
+- **Current UV** — latest per-second increment the firmware uses (`ADC / 75`), with raw ADC shown underneath for debug.
+- **Est. time remaining** — rough seconds until the full four-round session finishes. Assumes recent dose rate stays near the exponential moving average of the last samples (about 65% history / 35% newest per second). Remaining dose is `(4 − completed_threshold_crossings) × threshold − current_round_total`, divided by that smoothed rate. Shown only while sampling is active and rate is above zero; it is an estimate, not a guarantee.
+- **Elapsed** — session time since boot or reset, current round time, and a growing list of each round’s elapsed time (from round start through chirp completion).
+
+The UI does not replace OTA or block the 1 s sampling loop; the server is async.
 
 ## Wiring
 
