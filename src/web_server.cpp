@@ -16,7 +16,6 @@ extern bool chirpActive;
 extern float lastSensorAdc;
 extern float lastUv;
 extern float smoothedUvRate;
-extern unsigned long sessionStartMs;
 extern unsigned long roundStartMs;
 extern int completedRounds;
 extern unsigned long roundTimesMs[4];
@@ -95,8 +94,7 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
   <div class="stack">
     <div class="num" id="uv">—</div>
     <div class="num" id="eta">—</div>
-    <div class="num" id="session-elapsed">—</div>
-    <div class="num" id="round-elapsed">—</div>
+    <div class="num" id="elapsed" hidden>—</div>
     <ul class="rounds" id="rounds"></ul>
   </div>
   <div class="reset-wrap">
@@ -125,8 +123,13 @@ async function poll() {
     var d = await r.json();
     document.getElementById('uv').textContent = d.uv.toFixed(2);
     document.getElementById('eta').textContent = d.run ? fmtEta(d.eta_sec) : '—';
-    document.getElementById('session-elapsed').textContent = fmt(d.session_elapsed_ms);
-    document.getElementById('round-elapsed').textContent = fmt(d.round_elapsed_ms);
+    var elapsedEl = document.getElementById('elapsed');
+    if (d.run) {
+      elapsedEl.hidden = false;
+      elapsedEl.textContent = fmt(d.elapsed_ms);
+    } else {
+      elapsedEl.hidden = true;
+    }
     var ul = document.getElementById('rounds');
     ul.innerHTML = '';
     (d.rounds || []).forEach(function(ms) {
@@ -162,8 +165,7 @@ setInterval(poll, 1000);
 
 static void appendStatusJson(String& out) {
     unsigned long now = millis();
-    unsigned long sessionElapsed = now - sessionStartMs;
-    unsigned long roundElapsed = now - roundStartMs;
+    unsigned long elapsedMs = now - roundStartMs;
 
     float remainingDose = 0;
     int etaSec = -1;
@@ -193,10 +195,8 @@ static void appendStatusJson(String& out) {
     out += String(count);
     out += F(",\"run\":");
     out += run ? F("true") : F("false");
-    out += F(",\"session_elapsed_ms\":");
-    out += String(sessionElapsed);
-    out += F(",\"round_elapsed_ms\":");
-    out += String(roundElapsed);
+    out += F(",\"elapsed_ms\":");
+    out += String(elapsedMs);
     out += F(",\"eta_sec\":");
     out += String(etaSec);
     out += F(",\"rounds\":[");

@@ -12,7 +12,7 @@ Displayed values:
 
 - **Current UV** — latest per-second increment the firmware uses (`ADC / 75`), with raw ADC shown underneath for debug.
 - **Est. time remaining** — rough seconds until the full four-round session finishes. Assumes recent dose rate stays near the exponential moving average of the last samples (about 65% history / 35% newest per second). Remaining dose is `(4 − completed_threshold_crossings) × threshold − current_round_total`, divided by that smoothed rate. Shown only while sampling is active and rate is above zero; it is an estimate, not a guarantee.
-- **Elapsed** — session time since boot or reset, current round time, and a growing list of each round’s elapsed time (from round start through chirp completion).
+- **Elapsed** — one live timer for the round in progress (hidden after all four rounds finish). Each completed round’s time (start through chirp completion) moves into the list below when that round ends.
 
 The UI does not replace OTA or block the 1 s sampling loop; the server is async.
 
