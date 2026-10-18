@@ -11,7 +11,7 @@ cd UV
 
 Works on Windows (Git Bash or Git for Windows), macOS, and Linux.
 
-This project may also live in a [Cursor codebase](https://cursor.com/docs) on Origin; day-to-day pushes can use either remote if both are configured (`origin` for Origin, `github` for GitHub).
+**Contributing:** `main` on GitHub is the integration branch. Make changes on a `cursor/<topic>` branch, push to `origin`, and open a pull request into `main` (do not land features by merging locally into `main`).
 
 ---
 

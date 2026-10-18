@@ -1,0 +1,29 @@
+---
+description: Integrate changes via GitHub pull requests (Wyzird42/UV), not local merges to main
+alwaysApply: true
+---
+
+# GitHub PR workflow
+
+Canonical repository: **https://github.com/Wyzird42/UV** (`origin`).
+
+## Do not
+
+- Merge feature branches into `main` locally and push `main` (unless the user explicitly asks for an emergency direct update).
+- Treat Cursor Origin or other mirrors as the integration target unless the user says otherwise.
+
+## Do
+
+1. Start from up-to-date `main`: `git fetch origin` and `git pull origin main` when beginning new work.
+2. Create a branch named `cursor/<short-description>`.
+3. Commit only related changes; exclude IDE artifacts (`.vs/`, `__vm/`, `*.vcxproj*`, etc.).
+4. Push the branch: `git push -u origin HEAD`.
+5. Open a pull request targeting `main` on GitHub:
+   - Prefer `gh pr create` when GitHub CLI is installed and authenticated.
+   - Otherwise give the user the compare URL: `https://github.com/Wyzird42/UV/compare/main...<branch>?expand=1`
+6. Leave merge to the user on GitHub (or merge via `gh pr merge` only when they ask).
+7. After a PR is merged, sync local `main` with `git checkout main && git pull origin main`.
+
+## Commit / push prompts
+
+When the user runs “create branch and commit” actions: branch + commit locally; **do not push** if they say so. When finishing a feature for review, push the branch and open (or link) a PR instead of merging locally.
