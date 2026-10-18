@@ -65,7 +65,7 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
   }
   .rounds { list-style: none; width: 100%; }
   .rounds li {
-    font-size: clamp(4.75rem, 22vw, 6.75rem);
+    font-size: clamp(2.375rem, 11vw, 3.375rem);
     font-weight: 700;
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
