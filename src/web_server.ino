@@ -76,22 +76,27 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
   }
   .reset-wrap { margin-top: auto; padding-top: 2rem; width: 100%; }
   .threshold {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     width: 100%;
     margin-bottom: 1.25rem;
-    text-align: center;
-  }
-  .threshold-label {
-    display: block;
-    font-size: 1.35rem;
-    font-weight: 600;
-    margin-bottom: 0.65rem;
-    color: #ccc;
   }
   .threshold input[type="range"] {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     height: 2.25rem;
     accent-color: #00ff00;
     touch-action: manipulation;
+  }
+  .threshold-val {
+    flex-shrink: 0;
+    font-size: 1.35rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #ccc;
+    min-width: 1.75rem;
+    text-align: right;
   }
   button.reset {
     width: 100%;
@@ -119,8 +124,8 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
   </div>
   <div class="reset-wrap">
     <div class="threshold">
-      <label class="threshold-label" for="threshold">Target <span id="threshold-val">10</span></label>
-      <input type="range" id="threshold" min="5" max="15" step="1" value="10">
+      <input type="range" id="threshold" min="5" max="15" step="1" value="10" aria-label="Target">
+      <span class="threshold-val" id="threshold-val">10</span>
     </div>
     <button type="button" class="reset" id="reset-btn">Reset</button>
     <div class="err" id="err" hidden></div>
@@ -143,16 +148,20 @@ function fmtEta(sec) {
 function thresholdLevel(threshold) {
   return Math.round(threshold / 1000);
 }
+var thresholdEditing = false;
+function syncThresholdFromStatus(threshold) {
+  var slider = document.getElementById('threshold');
+  var level = thresholdLevel(threshold);
+  slider.value = level;
+  document.getElementById('threshold-val').textContent = level;
+}
 async function poll() {
   try {
     var r = await fetch('/api/status');
     if (!r.ok) throw new Error('status ' + r.status);
     var d = await r.json();
-    var slider = document.getElementById('threshold');
-    if (document.activeElement !== slider) {
-      var level = thresholdLevel(d.threshold);
-      slider.value = level;
-      document.getElementById('threshold-val').textContent = level;
+    if (!thresholdEditing) {
+      syncThresholdFromStatus(d.threshold);
     }
     document.getElementById('uv').textContent = d.uv.toFixed(2);
     document.getElementById('eta').textContent = d.run ? fmtEta(d.eta_sec) : '—';
@@ -177,21 +186,32 @@ async function poll() {
     el.hidden = false;
   }
 }
-document.getElementById('threshold').addEventListener('input', function() {
+var thresholdEl = document.getElementById('threshold');
+thresholdEl.addEventListener('pointerdown', function() {
+  thresholdEditing = true;
+});
+thresholdEl.addEventListener('keydown', function() {
+  thresholdEditing = true;
+});
+thresholdEl.addEventListener('blur', function() {
+  thresholdEditing = false;
+});
+thresholdEl.addEventListener('input', function() {
   document.getElementById('threshold-val').textContent = this.value;
 });
-document.getElementById('threshold').addEventListener('change', async function() {
+thresholdEl.addEventListener('change', async function() {
   var slider = this;
-  slider.disabled = true;
+  var level = slider.value;
+  document.getElementById('threshold-val').textContent = level;
   try {
-    var r = await fetch('/api/threshold?level=' + encodeURIComponent(slider.value), { method: 'POST' });
+    var r = await fetch('/api/threshold?level=' + encodeURIComponent(level), { method: 'POST' });
     if (!r.ok) throw new Error('threshold failed');
-    await poll();
+    document.getElementById('err').hidden = true;
   } catch (e) {
     document.getElementById('err').textContent = 'Target update failed';
     document.getElementById('err').hidden = false;
   }
-  slider.disabled = false;
+  thresholdEditing = false;
 });
 document.getElementById('reset-btn').addEventListener('click', async function() {
   var btn = this;
