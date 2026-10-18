@@ -7,20 +7,14 @@
 #include "web_server.h"
 
 // Per-second dose increment = analogRead(PIN_UV_SENSOR) / UV_ADC_DIVISOR (Uno used 75).
-static const float UV_ADC_DIVISOR = 75.0f;
+static const float UV_ADC_DIVISOR = 172.0f;
+static const int doseScale = 200;
 
-// Dose threshold = web slider level × 1000 (same dose units as above).
-static const int DEFAULT_UV_SELECTION = 10000;
-
-// GPIO 34 is ADC1_CH6. WiFi uses ADC2, so ADC2 reads are invalid while the
-// radio is on. GPIO 34 is input-only and must stay at or below 3.3 V.
 static const int PIN_UV_SENSOR = 34;
-
-// Uno used D2. GPIO 2 is a strapping pin on the ESP32, so the buzzer moved.
 static const int PIN_BUZZER = 25;
 
 static const int SOUND_MS = 200;
-static const unsigned long SAMPLE_INTERVAL_MS = 1000;
+static const unsigned long SAMPLE_INTERVAL_MS = 5000;
 static const unsigned long WIFI_SETUP_TIMEOUT_MS = 10000;
 static const unsigned long WIFI_RETRY_MS = 10000;
 static const char HOSTNAME[] = "uv";
@@ -56,12 +50,11 @@ void saveThresholdLevel(int level) {
     prefs.end();
 }
 
-int uvSelection = DEFAULT_UV_SELECTION;
+int uvSelection;
 float total = 0;
 bool run = true;
 int count = 0;
 
-float lastSensorAdc = 0;
 float lastUv = 0;
 float smoothedUvRate = 0;
 unsigned long sessionStartMs = 0;
@@ -77,6 +70,8 @@ bool chirpActive = false;
 int chirpStep = 0;
 unsigned long chirpStepMs = 0;
 
+unsigned long sampleCount = 0;
+float uvTotal = 0.0;
 unsigned long lastSampleMs = 0;
 bool sampledOnce = false;
 
@@ -93,8 +88,9 @@ void hardwareReset() {
         roundTimesMs[i] = 0;
     }
     sampledOnce = false;
+    sampleCount = 0;
+    uvTotal = 0;
     lastSampleMs = 0;
-    lastSensorAdc = 0;
     lastUv = 0;
     smoothedUvRate = 0;
 
@@ -200,6 +196,13 @@ void sampleUv() {
         return;
     }
 
+    // sensor is a float, so this is floating division, as on the Uno.
+    float sensor = analogRead(PIN_UV_SENSOR);
+    float uv = sensor / UV_ADC_DIVISOR;
+
+    ++sampleCount;
+    uvTotal += uv;
+
     unsigned long now = millis();
     if (sampledOnce && (now - lastSampleMs < SAMPLE_INTERVAL_MS)) {
         return;
@@ -207,10 +210,11 @@ void sampleUv() {
     lastSampleMs = now;
     sampledOnce = true;
 
-    // sensor is a float, so this is floating division, as on the Uno.
-    float sensor = analogRead(PIN_UV_SENSOR);
-    float uv = sensor / UV_ADC_DIVISOR;
-    lastSensorAdc = sensor;
+    uv = uvTotal / sampleCount;
+
+    sampleCount = 0;
+    uvTotal = 0.0;
+
     lastUv = uv;
     if (smoothedUvRate < 0.01f) {
         smoothedUvRate = uv;
@@ -232,16 +236,13 @@ void sampleUv() {
 void setup() {
     Serial.begin(115200);
 
-    uvSelection = loadThresholdLevel() * 1000;
+    uvSelection = loadThresholdLevel() * doseScale;
 
     unsigned long now = millis();
     sessionStartMs = now;
     roundStartMs = now;
 
-    // Match Uno scaling: 10-bit analogRead (0–1023) / UV_ADC_DIVISOR.
-    // ESP32 defaults to 12-bit (0–4095). Without this, the same voltage
-    // would add about four times as much dose.
-    analogReadResolution(10);
+    analogReadResolution(14);
 
     pinMode(PIN_BUZZER, OUTPUT);
     tone(PIN_BUZZER, 1300, SOUND_MS);

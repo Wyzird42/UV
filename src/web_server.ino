@@ -13,6 +13,7 @@ extern bool run;
 extern int count;
 extern bool chirpActive;
 
+extern const int doseScale;
 extern float lastUv;
 extern float smoothedUvRate;
 extern unsigned long roundStartMs;
@@ -145,7 +146,7 @@ function fmtEta(sec) {
   return fmt(sec * 1000);
 }
 function thresholdLevel(threshold) {
-  return Math.round(threshold / 1000);
+  return Math.round(threshold / 200);
 }
 var thresholdEditing = false;
 // Applied threshold lives on the device until Reset; do not overwrite the slider every poll.
@@ -274,7 +275,7 @@ static bool applyThresholdLevel(int level) {
     if (level < 5 || level > 15) {
         return false;
     }
-    uvSelection = level * 1000;
+    uvSelection = level * doseScale;
     saveThresholdLevel(level);
     return true;
 }
