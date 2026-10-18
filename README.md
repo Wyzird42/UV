@@ -31,7 +31,7 @@ Integrate to `main` when you are satisfied (merge on GitHub or locally—your ch
 
 ---
 
-Port of the Uno UV dosimeter. Once a second it reads the sensor, adds `reading / UV_ADC_DIVISOR` to a running total (`UV_ADC_DIVISOR` is at the top of `src/UV.ino`, default 75), and chirps the buzzer when the total crosses the dose threshold from the web UI slider (level × 1000, default 10). After four chirps it stops sampling. Wi-Fi, a mobile-friendly web page, and ArduinoOTA keep running either way.
+Port of the Uno UV dosimeter. The main loop polls the UV sensor about every millisecond, averages the **calibrated** reading over a 5 s window, and adds that average to a running dose total. Raw scaling uses `UV_ADC_DIVISOR` at the top of `src/UV.ino` (172 on ESP32; the Uno sketch used 75), then a two-point linear map (`UV_CAL_*` constants in the same file). It chirps when the total crosses the threshold from the web UI slider (level × `doseScale`, default level 10 → 2000). After four chirps it stops accumulating dose. Wi-Fi, a mobile-friendly web page, and ArduinoOTA keep running either way.
 
 ## Web UI (phone)
 
@@ -41,11 +41,11 @@ The page polls **`GET /api/status`** once per second (JSON). Set the threshold w
 
 Displayed values:
 
-- **Current UV** — latest per-second increment the firmware uses (`ADC / UV_ADC_DIVISOR`), with raw ADC shown underneath for debug.
-- **Est. time remaining** — rough seconds until the full four-round session finishes. Assumes recent dose rate stays near the exponential moving average of the last samples (about 65% history / 35% newest per second). Remaining dose is `(4 − completed_threshold_crossings) × threshold − current_round_total`, divided by that smoothed rate. Shown only while sampling is active and rate is above zero; it is an estimate, not a guarantee.
+- **Current UV** — latest calibrated UV index from the firmware (after `UV_ADC_DIVISOR` and `UV_CAL_*` linear correction), averaged over the last 5 s reporting window. JSON also includes `"adc"` (raw averaged ADC counts) for debug.
+- **Est. time remaining** — rough seconds until the full four-round session finishes. Assumes recent dose rate stays near the exponential moving average of each 5 s UV update (about 65% history / 35% newest). Remaining dose is `(4 − completed_threshold_crossings) × threshold − current_round_total`, divided by that smoothed rate. Shown only while sampling is active and rate is above zero; it is an estimate, not a guarantee.
 - **Elapsed** — one live timer for the round in progress (hidden after all four rounds finish). Each completed round’s time (start through chirp completion) moves into the list below when that round ends.
 
-The UI does not replace OTA or block the 1 s sampling loop; the server is async.
+The UI does not replace OTA or block the main loop; the HTTP server is async.
 
 ## Wiring
 

@@ -2,10 +2,10 @@
 
 #include <functional>
 
-// Slider level L → dose threshold = L * doseScale (defined in UV.ino).
+// Slider level L -> dose threshold = L * doseScale (defined in UV.ino).
 extern const int doseScale;
 
-// Slider level 5–15 in NVS; default 10 when unset or invalid.
+// Slider level 5-15 in NVS; default 10 when unset or invalid.
 int loadThresholdLevel();
 void saveThresholdLevel(int level);
 

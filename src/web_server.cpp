@@ -14,6 +14,7 @@ extern int count;
 extern bool chirpActive;
 
 extern float lastUv;
+extern float lastAdc;
 extern float smoothedUvRate;
 extern unsigned long roundStartMs;
 extern int completedRounds;
@@ -157,11 +158,11 @@ function syncThresholdFromStatus(threshold) {
   slider.value = level;
   document.getElementById('threshold-val').textContent = level;
 }
-async function poll() {
-  try {
-    var r = await fetch('/api/status');
+function poll() {
+  fetch('/api/status').then(function(r) {
     if (!r.ok) throw new Error('status ' + r.status);
-    var d = await r.json();
+    return r.json();
+  }).then(function(d) {
     if (d.dose_scale != null && d.dose_scale > 0) {
       doseScale = d.dose_scale;
     }
@@ -186,11 +187,11 @@ async function poll() {
       ul.appendChild(li);
     });
     document.getElementById('err').hidden = true;
-  } catch (e) {
+  }).catch(function() {
     var el = document.getElementById('err');
     el.textContent = 'Update failed';
     el.hidden = false;
-  }
+  });
 }
 var thresholdEl = document.getElementById('threshold');
 thresholdEl.addEventListener('pointerdown', function() {
@@ -208,19 +209,19 @@ thresholdEl.addEventListener('input', function() {
 thresholdEl.addEventListener('change', function() {
   thresholdEditing = false;
 });
-document.getElementById('reset-btn').addEventListener('click', async function() {
+document.getElementById('reset-btn').addEventListener('click', function() {
   var btn = this;
   btn.disabled = true;
   var level = document.getElementById('threshold').value;
-  try {
-    var r = await fetch('/api/reset?level=' + encodeURIComponent(level), { method: 'POST' });
+  fetch('/api/reset?level=' + encodeURIComponent(level), { method: 'POST' }).then(function(r) {
     if (!r.ok) throw new Error('reset failed');
-    await poll();
-  } catch (e) {
+    poll();
+  }).catch(function() {
     document.getElementById('err').textContent = 'Reset failed';
     document.getElementById('err').hidden = false;
-  }
-  btn.disabled = false;
+  }).finally(function() {
+    btn.disabled = false;
+  });
 });
 poll();
 setInterval(poll, 1000);
@@ -251,7 +252,7 @@ static void appendStatusJson(String& out) {
     out += F("{\"uv\":");
     out += String(lastUv, 2);
     out += F(",\"adc\":");
-    out += String(lastUv, 2);
+    out += String(lastAdc, 0);
     out += F(",\"total\":");
     out += String(total, 1);
     out += F(",\"threshold\":");

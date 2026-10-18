@@ -6,14 +6,27 @@
 #include "secrets.h"
 #include "web_server.h"
 
-// Per-second dose increment = analogRead(PIN_UV_SENSOR) / UV_ADC_DIVISOR (Uno used 75).
+// Divided sensor value = analogRead(PIN_UV_SENSOR) / UV_ADC_DIVISOR (Uno used 75).
 static const float UV_ADC_DIVISOR = 172.0f;
+
+// Linear map from divided reading to reported UV (dose index shown on the web UI).
+// Recalibrate: measure divided reading at two known UV levels, update the RAW/TRUE pairs.
+static const float UV_CAL_RAW_LOW = 0.4f;
+static const float UV_CAL_TRUE_LOW = 3.0f;
+static const float UV_CAL_RAW_HIGH = 8.0f;
+static const float UV_CAL_TRUE_HIGH = 8.0f;
+static const float UV_CAL_SLOPE =
+    (UV_CAL_TRUE_HIGH - UV_CAL_TRUE_LOW) / (UV_CAL_RAW_HIGH - UV_CAL_RAW_LOW);
+static const float UV_CAL_OFFSET = UV_CAL_TRUE_LOW - UV_CAL_SLOPE * UV_CAL_RAW_LOW;
+
+// Dose threshold = web slider level (5-15) * doseScale.
 const int doseScale = 200;
 
 static const int PIN_UV_SENSOR = 34;
 static const int PIN_BUZZER = 25;
 
 static const int SOUND_MS = 200;
+// Average calibrated UV over this window; loop polls the ADC about every 1 ms.
 static const unsigned long SAMPLE_INTERVAL_MS = 5000;
 static const unsigned long WIFI_SETUP_TIMEOUT_MS = 10000;
 static const unsigned long WIFI_RETRY_MS = 10000;
@@ -56,6 +69,7 @@ bool run = true;
 int count = 0;
 
 float lastUv = 0;
+float lastAdc = 0;
 float smoothedUvRate = 0;
 unsigned long sessionStartMs = 0;
 unsigned long roundStartMs = 0;
@@ -72,6 +86,7 @@ unsigned long chirpStepMs = 0;
 
 unsigned long sampleCount = 0;
 float uvTotal = 0.0;
+float adcTotal = 0.0;
 unsigned long lastSampleMs = 0;
 bool sampledOnce = false;
 
@@ -90,8 +105,10 @@ void hardwareReset() {
     sampledOnce = false;
     sampleCount = 0;
     uvTotal = 0;
+    adcTotal = 0;
     lastSampleMs = 0;
     lastUv = 0;
+    lastAdc = 0;
     smoothedUvRate = 0;
 
     unsigned long now = millis();
@@ -187,7 +204,7 @@ void serviceWifi() {
         return;
     }
     lastWifiRetryMs = now;
-    // Non-blocking. Samples keep their 1 s cadence while this retries.
+    // Non-blocking; sampleUv() keeps accumulating ADC reads while this retries.
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 
@@ -196,12 +213,13 @@ void sampleUv() {
         return;
     }
 
-    // sensor is a float, so this is floating division, as on the Uno.
-    float sensor = analogRead(PIN_UV_SENSOR);
-    float uv = sensor / UV_ADC_DIVISOR;
+    float sensor = static_cast<float>(analogRead(PIN_UV_SENSOR));
+    const float rawScaled = sensor / UV_ADC_DIVISOR;
+    const float calibratedSample = rawScaled * UV_CAL_SLOPE + UV_CAL_OFFSET;
 
     ++sampleCount;
-    uvTotal += uv;
+    adcTotal += sensor;
+    uvTotal += calibratedSample;
 
     unsigned long now = millis();
     if (sampledOnce && (now - lastSampleMs < SAMPLE_INTERVAL_MS)) {
@@ -210,10 +228,12 @@ void sampleUv() {
     lastSampleMs = now;
     sampledOnce = true;
 
-    uv = uvTotal / sampleCount;
+    float uv = uvTotal / sampleCount;
+    lastAdc = adcTotal / static_cast<float>(sampleCount);
 
     sampleCount = 0;
     uvTotal = 0.0;
+    adcTotal = 0.0;
 
     lastUv = uv;
     if (smoothedUvRate < 0.01f) {
