@@ -31,7 +31,7 @@ Integrate to `main` when you are satisfied (merge on GitHub or locally—your ch
 
 ---
 
-Port of the Uno UV dosimeter. Once a second it reads the sensor, adds `reading / 75` to a running total, and chirps the buzzer when the total crosses the dose threshold from the web UI slider (level × 1000, default 10). After four chirps it stops sampling. Wi-Fi, a mobile-friendly web page, and ArduinoOTA keep running either way.
+Port of the Uno UV dosimeter. Once a second it reads the sensor, adds `reading / UV_ADC_DIVISOR` to a running total (`UV_ADC_DIVISOR` is at the top of `src/UV.ino`, default 75), and chirps the buzzer when the total crosses the dose threshold from the web UI slider (level × 1000, default 10). After four chirps it stops sampling. Wi-Fi, a mobile-friendly web page, and ArduinoOTA keep running either way.
 
 ## Web UI (phone)
 
@@ -41,7 +41,7 @@ The page polls **`GET /api/status`** once per second (JSON). Set the threshold w
 
 Displayed values:
 
-- **Current UV** — latest per-second increment the firmware uses (`ADC / 75`), with raw ADC shown underneath for debug.
+- **Current UV** — latest per-second increment the firmware uses (`ADC / UV_ADC_DIVISOR`), with raw ADC shown underneath for debug.
 - **Est. time remaining** — rough seconds until the full four-round session finishes. Assumes recent dose rate stays near the exponential moving average of the last samples (about 65% history / 35% newest per second). Remaining dose is `(4 − completed_threshold_crossings) × threshold − current_round_total`, divided by that smoothed rate. Shown only while sampling is active and rate is above zero; it is an estimate, not a guarantee.
 - **Elapsed** — one live timer for the round in progress (hidden after all four rounds finish). Each completed round’s time (start through chirp completion) moves into the list below when that round ends.
 

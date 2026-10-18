@@ -6,7 +6,10 @@
 #include "secrets.h"
 #include "web_server.h"
 
-// Dose threshold = web slider level × 1000 (same units as the Uno: sum of reading/75).
+// Per-second dose increment = analogRead(PIN_UV_SENSOR) / UV_ADC_DIVISOR (Uno used 75).
+static const float UV_ADC_DIVISOR = 75.0f;
+
+// Dose threshold = web slider level × 1000 (same dose units as above).
 static const int DEFAULT_UV_SELECTION = 10000;
 
 // GPIO 34 is ADC1_CH6. WiFi uses ADC2, so ADC2 reads are invalid while the
@@ -206,7 +209,7 @@ void sampleUv() {
 
     // sensor is a float, so this is floating division, as on the Uno.
     float sensor = analogRead(PIN_UV_SENSOR);
-    float uv = sensor / 75;
+    float uv = sensor / UV_ADC_DIVISOR;
     lastSensorAdc = sensor;
     lastUv = uv;
     if (smoothedUvRate < 0.01f) {
@@ -235,7 +238,7 @@ void setup() {
     sessionStartMs = now;
     roundStartMs = now;
 
-    // The Uno sketch divides a 10-bit analogRead (0–1023) by 75.
+    // Match Uno scaling: 10-bit analogRead (0–1023) / UV_ADC_DIVISOR.
     // ESP32 defaults to 12-bit (0–4095). Without this, the same voltage
     // would add about four times as much dose.
     analogReadResolution(10);
