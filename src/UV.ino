@@ -8,7 +8,7 @@
 
 // Per-second dose increment = analogRead(PIN_UV_SENSOR) / UV_ADC_DIVISOR (Uno used 75).
 static const float UV_ADC_DIVISOR = 172.0f;
-static const int doseScale = 200;
+const int doseScale = 200;
 
 static const int PIN_UV_SENSOR = 34;
 static const int PIN_BUZZER = 25;

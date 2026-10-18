@@ -13,7 +13,6 @@ extern bool run;
 extern int count;
 extern bool chirpActive;
 
-extern const int doseScale;
 extern float lastUv;
 extern float smoothedUvRate;
 extern unsigned long roundStartMs;
@@ -145,8 +144,9 @@ function fmtEta(sec) {
   if (sec == null || sec < 0) return '—';
   return fmt(sec * 1000);
 }
+var doseScale = 1;
 function thresholdLevel(threshold) {
-  return Math.round(threshold / 200);
+  return Math.round(threshold / doseScale);
 }
 var thresholdEditing = false;
 // Applied threshold lives on the device until Reset; do not overwrite the slider every poll.
@@ -162,6 +162,9 @@ async function poll() {
     var r = await fetch('/api/status');
     if (!r.ok) throw new Error('status ' + r.status);
     var d = await r.json();
+    if (d.dose_scale != null && d.dose_scale > 0) {
+      doseScale = d.dose_scale;
+    }
     if (!thresholdSyncedFromDevice && !thresholdEditing) {
       syncThresholdFromStatus(d.threshold);
       thresholdSyncedFromDevice = true;
@@ -253,6 +256,8 @@ static void appendStatusJson(String& out) {
     out += String(total, 1);
     out += F(",\"threshold\":");
     out += String(uvSelection);
+    out += F(",\"dose_scale\":");
+    out += String(doseScale);
     out += F(",\"count\":");
     out += String(count);
     out += F(",\"run\":");
