@@ -149,6 +149,8 @@ function thresholdLevel(threshold) {
   return Math.round(threshold / 1000);
 }
 var thresholdEditing = false;
+// Applied threshold lives on the device until Reset; do not overwrite the slider every poll.
+var thresholdSyncedFromDevice = false;
 function syncThresholdFromStatus(threshold) {
   var slider = document.getElementById('threshold');
   var level = thresholdLevel(threshold);
@@ -160,8 +162,9 @@ async function poll() {
     var r = await fetch('/api/status');
     if (!r.ok) throw new Error('status ' + r.status);
     var d = await r.json();
-    if (!thresholdEditing) {
+    if (!thresholdSyncedFromDevice && !thresholdEditing) {
       syncThresholdFromStatus(d.threshold);
+      thresholdSyncedFromDevice = true;
     }
     document.getElementById('uv').textContent = d.uv.toFixed(2);
     document.getElementById('eta').textContent = d.run ? fmtEta(d.eta_sec) : '—';
