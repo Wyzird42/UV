@@ -273,6 +273,7 @@ static bool applyThresholdLevel(int level) {
         return false;
     }
     uvSelection = level * 1000;
+    saveThresholdLevel(level);
     return true;
 }
 

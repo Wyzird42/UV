@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <ArduinoOTA.h>
+#include <Preferences.h>
 #include <WiFi.h>
 
 #include "secrets.h"
@@ -22,6 +23,35 @@ static const unsigned long WIFI_RETRY_MS = 10000;
 static const char HOSTNAME[] = "uv";
 static const uint16_t CHIRP_HZ[] = {1300, 800, 1300, 800};
 static const int CHIRP_TONES = 4;
+
+static const char THRESHOLD_PREFS_NS[] = "uv";
+static const char THRESHOLD_PREFS_KEY[] = "level";
+static const int DEFAULT_THRESHOLD_LEVEL = 10;
+
+int loadThresholdLevel() {
+    Preferences prefs;
+    if (!prefs.begin(THRESHOLD_PREFS_NS, true)) {
+        return DEFAULT_THRESHOLD_LEVEL;
+    }
+    int level = prefs.getInt(THRESHOLD_PREFS_KEY, DEFAULT_THRESHOLD_LEVEL);
+    prefs.end();
+    if (level < 5 || level > 15) {
+        return DEFAULT_THRESHOLD_LEVEL;
+    }
+    return level;
+}
+
+void saveThresholdLevel(int level) {
+    if (level < 5 || level > 15) {
+        return;
+    }
+    Preferences prefs;
+    if (!prefs.begin(THRESHOLD_PREFS_NS, false)) {
+        return;
+    }
+    prefs.putInt(THRESHOLD_PREFS_KEY, level);
+    prefs.end();
+}
 
 int uvSelection = DEFAULT_UV_SELECTION;
 float total = 0;
@@ -198,6 +228,8 @@ void sampleUv() {
 
 void setup() {
     Serial.begin(115200);
+
+    uvSelection = loadThresholdLevel() * 1000;
 
     unsigned long now = millis();
     sessionStartMs = now;
