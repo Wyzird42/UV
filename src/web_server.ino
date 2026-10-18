@@ -21,7 +21,7 @@ extern int completedRounds;
 extern unsigned long roundTimesMs[4];
 
 static AsyncWebServer server(80);
-static std::function<void()> hardwareReset;
+static std::function<void()> resetCallback;
 static bool webStarted = false;
 
 static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
@@ -215,7 +215,7 @@ void beginWebServer(std::function<void()> resetFn) {
     if (webStarted) {
         return;
     }
-    hardwareReset = resetFn;
+    resetCallback = resetFn;
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
         request->send(200, "text/html", INDEX_HTML);
@@ -230,8 +230,8 @@ void beginWebServer(std::function<void()> resetFn) {
     server.on(
         "/api/reset", HTTP_POST,
         [](AsyncWebServerRequest* request) {
-            if (hardwareReset) {
-                hardwareReset();
+            if (resetCallback) {
+                resetCallback();
             }
             request->send(200, "application/json", "{\"ok\":true}");
         });
