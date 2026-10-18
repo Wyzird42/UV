@@ -13,7 +13,6 @@ extern bool run;
 extern int count;
 extern bool chirpActive;
 
-extern float lastSensorAdc;
 extern float lastUv;
 extern float smoothedUvRate;
 extern unsigned long roundStartMs;
@@ -248,7 +247,7 @@ static void appendStatusJson(String& out) {
     out += F("{\"uv\":");
     out += String(lastUv, 2);
     out += F(",\"adc\":");
-    out += String(static_cast<int>(lastSensorAdc));
+    out += String(lastUv, 2);
     out += F(",\"total\":");
     out += String(total, 1);
     out += F(",\"threshold\":");
