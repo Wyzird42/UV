@@ -199,25 +199,15 @@ thresholdEl.addEventListener('blur', function() {
 thresholdEl.addEventListener('input', function() {
   document.getElementById('threshold-val').textContent = this.value;
 });
-thresholdEl.addEventListener('change', async function() {
-  var slider = this;
-  var level = slider.value;
-  document.getElementById('threshold-val').textContent = level;
-  try {
-    var r = await fetch('/api/threshold?level=' + encodeURIComponent(level), { method: 'POST' });
-    if (!r.ok) throw new Error('threshold failed');
-    document.getElementById('err').hidden = true;
-  } catch (e) {
-    document.getElementById('err').textContent = 'Target update failed';
-    document.getElementById('err').hidden = false;
-  }
+thresholdEl.addEventListener('change', function() {
   thresholdEditing = false;
 });
 document.getElementById('reset-btn').addEventListener('click', async function() {
   var btn = this;
   btn.disabled = true;
+  var level = document.getElementById('threshold').value;
   try {
-    var r = await fetch('/api/reset', { method: 'POST' });
+    var r = await fetch('/api/reset?level=' + encodeURIComponent(level), { method: 'POST' });
     if (!r.ok) throw new Error('reset failed');
     await poll();
   } catch (e) {
@@ -278,6 +268,14 @@ static void appendStatusJson(String& out) {
     out += F("]}");
 }
 
+static bool applyThresholdLevel(int level) {
+    if (level < 5 || level > 15) {
+        return false;
+    }
+    uvSelection = level * 1000;
+    return true;
+}
+
 void beginWebServer(std::function<void()> resetFn) {
     if (webStarted) {
         return;
@@ -297,25 +295,18 @@ void beginWebServer(std::function<void()> resetFn) {
     server.on(
         "/api/reset", HTTP_POST,
         [](AsyncWebServerRequest* request) {
-            if (resetCallback) {
-                resetCallback();
-            }
-            request->send(200, "application/json", "{\"ok\":true}");
-        });
-
-    server.on(
-        "/api/threshold", HTTP_POST,
-        [](AsyncWebServerRequest* request) {
             if (!request->hasParam("level")) {
                 request->send(400, "application/json", "{\"ok\":false}");
                 return;
             }
             int level = request->getParam("level")->value().toInt();
-            if (level < 5 || level > 15) {
+            if (!applyThresholdLevel(level)) {
                 request->send(400, "application/json", "{\"ok\":false}");
                 return;
             }
-            uvSelection = level * 1000;
+            if (resetCallback) {
+                resetCallback();
+            }
             request->send(200, "application/json", "{\"ok\":true}");
         });
 

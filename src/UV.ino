@@ -5,25 +5,12 @@
 #include "secrets.h"
 #include "web_server.h"
 
-// Dose thresholds, in the same units as the Uno sketch (sum of reading/75).
-static const int UV6 = 6000;
-static const int UV8 = 8000;
-static const int UV10 = 10000;
-static const int UV12 = 12000;
-static const int UV14 = 14000;
+// Dose threshold = web slider level × 1000 (same units as the Uno: sum of reading/75).
+static const int DEFAULT_UV_SELECTION = 10000;
 
 // GPIO 34 is ADC1_CH6. WiFi uses ADC2, so ADC2 reads are invalid while the
 // radio is on. GPIO 34 is input-only and must stay at or below 3.3 V.
 static const int PIN_UV_SENSOR = 34;
-
-// Select lines are active-low with internal pull-ups, so they cannot be
-// GPIO 34–39 (those pins have no pull-ups). Strapping pins 0, 2, 5, 12,
-// and 15 are avoided as well. First grounded pin at boot wins.
-static const int PIN_SEL_UV6 = 13;   // Uno D4
-static const int PIN_SEL_UV8 = 14;   // Uno D5
-static const int PIN_SEL_UV10 = 27;  // Uno D6
-static const int PIN_SEL_UV12 = 26;  // Uno D7
-static const int PIN_SEL_UV14 = 33;  // Uno D8
 
 // Uno used D2. GPIO 2 is a strapping pin on the ESP32, so the buzzer moved.
 static const int PIN_BUZZER = 25;
@@ -36,7 +23,7 @@ static const char HOSTNAME[] = "uv";
 static const uint16_t CHIRP_HZ[] = {1300, 800, 1300, 800};
 static const int CHIRP_TONES = 4;
 
-int uvSelection = UV10;
+int uvSelection = DEFAULT_UV_SELECTION;
 float total = 0;
 bool run = true;
 int count = 0;
@@ -60,14 +47,11 @@ unsigned long chirpStepMs = 0;
 unsigned long lastSampleMs = 0;
 bool sampledOnce = false;
 
-void selectDose();
-
 void hardwareReset() {
     noTone(PIN_BUZZER);
     chirpActive = false;
     chirpStep = 0;
 
-    selectDose();
     total = 0;
     count = 0;
     run = true;
@@ -178,31 +162,6 @@ void serviceWifi() {
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 
-void selectDose() {
-    pinMode(PIN_SEL_UV6, INPUT_PULLUP);
-    pinMode(PIN_SEL_UV8, INPUT_PULLUP);
-    pinMode(PIN_SEL_UV10, INPUT_PULLUP);
-    pinMode(PIN_SEL_UV12, INPUT_PULLUP);
-    pinMode(PIN_SEL_UV14, INPUT_PULLUP);
-
-    if (!digitalRead(PIN_SEL_UV6)) {
-        uvSelection = UV6;
-        Serial.println("uv6");
-    } else if (!digitalRead(PIN_SEL_UV8)) {
-        uvSelection = UV8;
-        Serial.println("uv8");
-    } else if (!digitalRead(PIN_SEL_UV10)) {
-        uvSelection = UV10;
-        Serial.println("uv10");
-    } else if (!digitalRead(PIN_SEL_UV12)) {
-        uvSelection = UV12;
-        Serial.println("uv12");
-    } else if (!digitalRead(PIN_SEL_UV14)) {
-        uvSelection = UV14;
-        Serial.println("uv14");
-    }
-}
-
 void sampleUv() {
     if (!run || chirpActive) {
         return;
@@ -239,8 +198,6 @@ void sampleUv() {
 
 void setup() {
     Serial.begin(115200);
-
-    selectDose();
 
     unsigned long now = millis();
     sessionStartMs = now;
