@@ -11,7 +11,23 @@ cd UV
 
 Works on Windows (Git Bash or Git for Windows), macOS, and Linux.
 
-**Contributing:** `main` on GitHub is the integration branch. Make changes on a `cursor/<topic>` branch, push to `origin`, and open a pull request into `main` (do not land features by merging locally into `main`).
+## Agent / branch workflow
+
+Same pattern as [Polyglow](https://github.com/Wyzird42/polyglow): agent work is pushed to a **branch on GitHub**; you pull it locally to build and test. Cursor may show **“PR #N”** for a Cloud Agent run—that is a run label, not a GitHub Pull Request and not necessarily the branch name. Use the branch name from the agent or from `git branch -r` on GitHub.
+
+From the repo root on Windows:
+
+```batch
+pull.bat
+pull.bat cursor\my-feature-branch
+pull.bat reset
+```
+
+- `pull.bat` — fetch and update local `main`
+- `pull.bat <branch>` — fetch and check out that branch (slashes as in git: `cursor/foo-bar`)
+- `pull.bat reset` — discard local changes and match `origin/main`
+
+Integrate to `main` when you are satisfied (merge on GitHub or locally—your choice).
 
 ---
 

@@ -1,0 +1,31 @@
+---
+description: Hand off work on GitHub branches (Polyglow-style); user pulls with pull.bat — not GitHub PRs
+alwaysApply: true
+---
+
+# Git branch handoff (same as Polyglow)
+
+Canonical repo: **https://github.com/Wyzird42/UV** (`origin`).
+
+Cursor may label a Cloud Agent run **“PR #N”** in the UI. That is a run number, **not** the git branch name and **not** a GitHub Pull Request. Branches on the remote look like `cursor/<topic>` or `cursor/<topic>-<id>` (for example `cursor/acclimation-dialog-live-progress-b6ef` on Polyglow).
+
+## Do not
+
+- Merge feature work into `main` locally and push `main`, unless the user explicitly asks.
+- Open GitHub Pull Requests (`gh pr create`, compare links, etc.) unless the user explicitly asks for a real PR on GitHub.
+
+## Do
+
+1. When starting new work: `git fetch origin` and base off current `origin/main`.
+2. Use branch names `cursor/<short-description>` (Cloud Agents may append their own suffix when they push).
+3. Commit only related changes; never commit IDE artifacts (`.vs/`, `__vm/`, `*.vcxproj*`, etc.).
+4. Push the branch: `git push -u origin HEAD`.
+5. Tell the user the **exact branch name** and how to sync locally:
+   - `pull.bat` — update `main`
+   - `pull.bat <branch-name>` — fetch and check out that branch (example: `pull.bat cursor/uv-hostname-and-threshold-slider`)
+   - `pull.bat reset` — hard reset local `main` to `origin/main`
+6. Let the user test on the branch and merge to `main` when they choose (GitHub, local merge, etc.).
+
+## “Create branch and commit” actions
+
+Branch + commit locally. **Do not push** when the user says not to. When handoff is intended, push the branch and give the `pull.bat <branch>` line — do not merge to `main` for them.
