@@ -19,7 +19,7 @@ Port of the Uno UV dosimeter. Once a second it reads the sensor, adds `reading /
 
 ## Web UI (phone)
 
-When the board is on Wi-Fi, open **`http://uv-dosimeter.local/`** in a phone browser (portrait layout: black background, large numbers). If mDNS does not resolve on your network, use the IP printed on the serial monitor at `115200` baud, for example `http://192.168.1.20/`.
+When the board is on Wi-Fi, open **`http://uv.local/`** in a phone browser (portrait layout: black background, large numbers). If mDNS does not resolve on your network, use the IP printed on the serial monitor at `115200` baud, for example `http://192.168.1.20/`.
 
 The page polls **`GET /api/status`** once per second (JSON). **`POST /api/reset`** performs the same reset as power-cycling with respect to dose state: selector pins are read again, totals and round history clear, sampling restarts, and the startup beep plays.
 
@@ -70,7 +70,7 @@ pio run -t upload
 pio device monitor
 ```
 
-Serial is 115200. On connect the firmware prints the IP and the OTA hostname (`uv-dosimeter`). If Wi-Fi does not come up within about 10 seconds at boot, the dosimeter runs anyway and retries in the background.
+Serial is 115200. On connect the firmware prints the IP and the OTA hostname (`uv`). If Wi-Fi does not come up within about 10 seconds at boot, the dosimeter runs anyway and retries in the background.
 
 ## OTA upload
 
@@ -90,4 +90,4 @@ Upload:
 pio run -e esp32dev-ota -t upload --upload-port 192.168.1.20
 ```
 
-`192.168.1.20` is the board's address. `uv-dosimeter.local` works when mDNS resolves. The uploader and the board must share a network; this does not cross subnets or guest isolation.
+`192.168.1.20` is the board's address. `uv.local` works when mDNS resolves. The uploader and the board must share a network; this does not cross subnets or guest isolation.

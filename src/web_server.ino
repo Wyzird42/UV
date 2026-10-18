@@ -75,6 +75,24 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     color: #ffffff;
   }
   .reset-wrap { margin-top: auto; padding-top: 2rem; width: 100%; }
+  .threshold {
+    width: 100%;
+    margin-bottom: 1.25rem;
+    text-align: center;
+  }
+  .threshold-label {
+    display: block;
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin-bottom: 0.65rem;
+    color: #ccc;
+  }
+  .threshold input[type="range"] {
+    width: 100%;
+    height: 2.25rem;
+    accent-color: #00ff00;
+    touch-action: manipulation;
+  }
   button.reset {
     width: 100%;
     padding: 1.1rem 1.25rem;
@@ -100,6 +118,10 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     <ul class="rounds" id="rounds"></ul>
   </div>
   <div class="reset-wrap">
+    <div class="threshold">
+      <label class="threshold-label" for="threshold">Target <span id="threshold-val">10</span></label>
+      <input type="range" id="threshold" min="5" max="15" step="1" value="10">
+    </div>
     <button type="button" class="reset" id="reset-btn">Reset</button>
     <div class="err" id="err" hidden></div>
   </div>
@@ -118,11 +140,20 @@ function fmtEta(sec) {
   if (sec == null || sec < 0) return '—';
   return fmt(sec * 1000);
 }
+function thresholdLevel(threshold) {
+  return Math.round(threshold / 1000);
+}
 async function poll() {
   try {
     var r = await fetch('/api/status');
     if (!r.ok) throw new Error('status ' + r.status);
     var d = await r.json();
+    var slider = document.getElementById('threshold');
+    if (document.activeElement !== slider) {
+      var level = thresholdLevel(d.threshold);
+      slider.value = level;
+      document.getElementById('threshold-val').textContent = level;
+    }
     document.getElementById('uv').textContent = d.uv.toFixed(2);
     document.getElementById('eta').textContent = d.run ? fmtEta(d.eta_sec) : '—';
     var elapsedEl = document.getElementById('elapsed');
@@ -146,6 +177,22 @@ async function poll() {
     el.hidden = false;
   }
 }
+document.getElementById('threshold').addEventListener('input', function() {
+  document.getElementById('threshold-val').textContent = this.value;
+});
+document.getElementById('threshold').addEventListener('change', async function() {
+  var slider = this;
+  slider.disabled = true;
+  try {
+    var r = await fetch('/api/threshold?level=' + encodeURIComponent(slider.value), { method: 'POST' });
+    if (!r.ok) throw new Error('threshold failed');
+    await poll();
+  } catch (e) {
+    document.getElementById('err').textContent = 'Target update failed';
+    document.getElementById('err').hidden = false;
+  }
+  slider.disabled = false;
+});
 document.getElementById('reset-btn').addEventListener('click', async function() {
   var btn = this;
   btn.disabled = true;
@@ -236,7 +283,23 @@ void beginWebServer(std::function<void()> resetFn) {
             request->send(200, "application/json", "{\"ok\":true}");
         });
 
+    server.on(
+        "/api/threshold", HTTP_POST,
+        [](AsyncWebServerRequest* request) {
+            if (!request->hasParam("level")) {
+                request->send(400, "application/json", "{\"ok\":false}");
+                return;
+            }
+            int level = request->getParam("level")->value().toInt();
+            if (level < 5 || level > 15) {
+                request->send(400, "application/json", "{\"ok\":false}");
+                return;
+            }
+            uvSelection = level * 1000;
+            request->send(200, "application/json", "{\"ok\":true}");
+        });
+
     server.begin();
     webStarted = true;
-    Serial.println("Web UI: http://uv-dosimeter.local/ (or device IP)");
+    Serial.println("Web UI: http://uv.local/ (or device IP)");
 }

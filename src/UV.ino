@@ -32,7 +32,7 @@ static const int SOUND_MS = 200;
 static const unsigned long SAMPLE_INTERVAL_MS = 1000;
 static const unsigned long WIFI_SETUP_TIMEOUT_MS = 10000;
 static const unsigned long WIFI_RETRY_MS = 10000;
-static const char HOSTNAME[] = "uv-dosimeter";
+static const char HOSTNAME[] = "uv";
 static const uint16_t CHIRP_HZ[] = {1300, 800, 1300, 800};
 static const int CHIRP_TONES = 4;
 
