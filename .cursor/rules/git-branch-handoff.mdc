@@ -1,31 +1,31 @@
 ---
-description: Hand off work on GitHub branches (Polyglow-style); user pulls with pull.bat — not GitHub PRs
+description: Agent work lives on GitHub only; user owns their local clone
 alwaysApply: true
 ---
 
-# Git branch handoff (same as Polyglow)
+# GitHub-only agent workflow
 
 Canonical repo: **https://github.com/Wyzird42/UV** (`origin`).
 
-Cursor may label a Cloud Agent run **“PR #N”** in the UI. That is a run number, **not** the git branch name and **not** a GitHub Pull Request. Branches on the remote look like `cursor/<topic>` or `cursor/<topic>-<id>` (for example `cursor/acclimation-dialog-live-progress-b6ef` on Polyglow).
+Cursor may label a Cloud Agent run **“PR #N”** in the UI. That is a run number, **not** the git branch name and **not** a GitHub Pull Request. Remote branches look like `cursor/<topic>` or `cursor/<topic>-<id>`.
 
-## Do not
+## Do not (local repo)
 
-- Merge feature work into `main` locally and push `main`, unless the user explicitly asks.
-- Open GitHub Pull Requests (`gh pr create`, compare links, etc.) unless the user explicitly asks for a real PR on GitHub.
+- **Do not manage the user’s local git clone**: no `git checkout`, `git pull`, `git merge`, `git restore`, or “sync your machine” steps unless they explicitly ask.
+- Do not tell them to run `pull.bat` or other local sync commands as part of handoff—they handle local themselves.
+- Do not merge feature work into `main` and push `main`, unless they explicitly ask.
+- Do not open GitHub Pull Requests unless they explicitly ask.
 
-## Do
+## Do (GitHub)
 
-1. When starting new work: `git fetch origin` and base off current `origin/main`.
-2. Use branch names `cursor/<short-description>` (Cloud Agents may append their own suffix when they push).
+1. Base work on current **`origin/main`** (fetch is fine; avoid reshaping their local branch checkout).
+2. Use branch names `cursor/<short-description>`.
 3. Commit only related changes; never commit IDE artifacts (`.vs/`, `__vm/`, `*.vcxproj*`, etc.).
-4. Push the branch: `git push -u origin HEAD`.
-5. Tell the user the **exact branch name** and how to sync locally:
-   - `pull.bat` — update `main`
-   - `pull.bat <branch-name>` — fetch and check out that branch (example: `pull.bat cursor/uv-hostname-and-threshold-slider`)
-   - `pull.bat reset` — hard reset local `main` to `origin/main`
-6. Let the user test on the branch and merge to `main` when they choose (GitHub, local merge, etc.).
+4. **Push the branch to GitHub:** `git push -u origin <branch>`.
+5. Hand off with the **remote branch name** (and commit message if useful). Optionally link: `https://github.com/Wyzird42/UV/tree/<branch>`.
+
+They merge to `main` on GitHub or locally when they choose.
 
 ## “Create branch and commit” actions
 
-Branch + commit locally. **Do not push** when the user says not to. When handoff is intended, push the branch and give the `pull.bat <branch>` line — do not merge to `main` for them.
+Branch + commit + push to GitHub when handoff is intended. **Do not push** when they say not to. Do not merge to `main` for them unless asked.
