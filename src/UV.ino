@@ -69,6 +69,7 @@ bool run = true;
 int count = 0;
 
 float lastUv = 0;
+float lastUvRaw = 0;
 float lastAdc = 0;
 float smoothedUvRate = 0;
 unsigned long sessionStartMs = 0;
@@ -86,6 +87,7 @@ unsigned long chirpStepMs = 0;
 
 unsigned long sampleCount = 0;
 float uvTotal = 0.0;
+float rawScaledTotal = 0.0;
 float adcTotal = 0.0;
 unsigned long lastSampleMs = 0;
 bool sampledOnce = false;
@@ -105,9 +107,11 @@ void hardwareReset() {
     sampledOnce = false;
     sampleCount = 0;
     uvTotal = 0;
+    rawScaledTotal = 0;
     adcTotal = 0;
     lastSampleMs = 0;
     lastUv = 0;
+    lastUvRaw = 0;
     lastAdc = 0;
     smoothedUvRate = 0;
 
@@ -220,6 +224,7 @@ void sampleUv() {
     ++sampleCount;
     adcTotal += sensor;
     uvTotal += calibratedSample;
+    rawScaledTotal += rawScaled;
 
     unsigned long now = millis();
     if (sampledOnce && (now - lastSampleMs < SAMPLE_INTERVAL_MS)) {
@@ -230,9 +235,11 @@ void sampleUv() {
 
     float uv = uvTotal / sampleCount;
     lastAdc = adcTotal / static_cast<float>(sampleCount);
+    lastUvRaw = rawScaledTotal / static_cast<float>(sampleCount);
 
     sampleCount = 0;
     uvTotal = 0.0;
+    rawScaledTotal = 0.0;
     adcTotal = 0.0;
 
     lastUv = uv;

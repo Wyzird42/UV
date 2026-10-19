@@ -14,6 +14,7 @@ extern int count;
 extern bool chirpActive;
 
 extern float lastUv;
+extern float lastUvRaw;
 extern float lastAdc;
 extern float smoothedUvRate;
 extern unsigned long roundStartMs;
@@ -62,6 +63,27 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     font-variant-numeric: tabular-nums;
     text-align: center;
     width: 100%;
+    color: #00ff00;
+  }
+  .uv-raw {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    width: 100%;
+    margin-top: -0.5rem;
+  }
+  .uv-raw-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #888;
+  }
+  .uv-raw-val {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
     color: #00ff00;
   }
   .rounds { list-style: none; width: 100%; }
@@ -118,6 +140,10 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 <body>
   <div class="stack">
     <div class="num" id="uv">—</div>
+    <div class="uv-raw">
+      <span class="uv-raw-label">Unadjusted (÷ divisor)</span>
+      <span class="uv-raw-val" id="uv_raw">—</span>
+    </div>
     <div class="num" id="eta">—</div>
     <div class="num" id="elapsed" hidden>—</div>
     <ul class="rounds" id="rounds"></ul>
@@ -171,6 +197,8 @@ function poll() {
       thresholdSyncedFromDevice = true;
     }
     document.getElementById('uv').textContent = d.uv.toFixed(2);
+    document.getElementById('uv_raw').textContent =
+      d.uv_raw != null ? d.uv_raw.toFixed(2) : '—';
     document.getElementById('eta').textContent = d.run ? fmtEta(d.eta_sec) : '—';
     var elapsedEl = document.getElementById('elapsed');
     if (d.run) {
@@ -251,6 +279,8 @@ static void appendStatusJson(String& out) {
     out.reserve(384);
     out += F("{\"uv\":");
     out += String(lastUv, 2);
+    out += F(",\"uv_raw\":");
+    out += String(lastUvRaw, 2);
     out += F(",\"adc\":");
     out += String(lastAdc, 0);
     out += F(",\"total\":");
